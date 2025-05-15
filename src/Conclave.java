@@ -1,10 +1,22 @@
 import java.util.*;
 
 public class Conclave {
+
     public static void main(String[] args) {
         List<Cardinal> allCardinals = new ArrayList<>();
-        for (int i = 0; i < 135; i++) {
-            Cardinal c = new Cardinal("Cardinal" + i, i, new Random().nextInt(10), "Cardinal" + i, allCardinals);
+//        for (int i = 0; i < 15; i++) {
+//            Cardinal c = new Cardinal("Cardinal" + i, i, new Random().nextInt(10), allCardinals);
+//            allCardinals.add(c);
+//        }
+        for (int i = 0; i < 10; i++) {
+            int x, y;
+            Random rand = new Random();
+            do {
+                x = rand.nextInt(10);
+                y = rand.nextInt(10);
+            } while (positionOccupied(allCardinals, x, y));
+            Cardinal c = new Cardinal("Cardinal" + i, i, x, y, new Random().nextInt(10), allCardinals);
+
             allCardinals.add(c);
         }
         for (Cardinal c : allCardinals) {
@@ -12,7 +24,7 @@ public class Conclave {
         }
         new Thread(() -> {
             while (true) {
-                printBoard(allCardinals, 50, 50);
+                printBoard(allCardinals, 10, 10);
                 try {
                     Thread.sleep(150);
                 } catch (InterruptedException e) {
@@ -22,7 +34,16 @@ public class Conclave {
         }).start();
     }
 
-    public static void printBoard(List<Cardinal> cardinals, int width, int height) {
+    private static boolean positionOccupied(List<Cardinal> cardinals, int x, int y) {
+        for (Cardinal c : cardinals) {
+            if (c.getX() == x && c.getY() == y) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static synchronized void printBoard(List<Cardinal> cardinals, int width, int height) {
         String[][] board = new String[height][width];
 
         // Fill board with empty spaces
