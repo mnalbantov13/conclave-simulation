@@ -1,10 +1,29 @@
 import java.util.*;
 
 public class Conclave {
+
+    private static boolean positionOccupied(List<Cardinal> cardinals, int x, int y) {
+        for (Cardinal c : cardinals) {
+            if (c.getX() == x && c.getY() == y) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static void main(String[] args) {
         List<Cardinal> allCardinals = new ArrayList<>();
+
         for (int i = 0; i < 135; i++) {
-            Cardinal c = new Cardinal("Cardinal" + i, i, new Random().nextInt(10), "Cardinal" + i, allCardinals);
+            int x, y;
+            Random rand = new Random();
+            do {
+                x = rand.nextInt(50);
+                y = rand.nextInt(50);
+            } while (positionOccupied(allCardinals, x, y));
+            //Cardinal c = new Cardinal("Cardinal" + i, x, y, "Cardinal" + i, allCardinals);
+            Cardinal c = new Cardinal("Cardinal" + i, i, x, y, new Random().nextInt(10),"Cardinal" + i, allCardinals);
+
             allCardinals.add(c);
         }
         for (Cardinal c : allCardinals) {

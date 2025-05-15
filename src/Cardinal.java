@@ -10,13 +10,15 @@ public class Cardinal extends Thread{
     private int influenceRating;
     private String startVote;
     private int threshold;
-    public int x = new Random().nextInt(gridx);
-    public int y = new Random().nextInt(gridy);
+    public int x;
+    public int y;
     private List<Cardinal> allCardinals;
 
-    public Cardinal(String name, int index, int influenceRating, String startVote, List<Cardinal> allCardinals) {
+    public Cardinal(String name, int index, int x,int y, int influenceRating, String startVote, List<Cardinal> allCardinals) {
         this.name = name;
         this.num = index;
+        this.x = x;
+        this.y = y;
         this.influenceRating = influenceRating;
         this.startVote = startVote;
         this.allCardinals = allCardinals;
