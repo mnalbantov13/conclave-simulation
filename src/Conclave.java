@@ -1,6 +1,7 @@
 import java.util.*;
 
 public class Conclave {
+    public static volatile boolean electionOver = false;
 
     public static void main(String[] args) {
         List<Cardinal> allCardinals = new ArrayList<>();
@@ -22,16 +23,73 @@ public class Conclave {
         for (Cardinal c : allCardinals) {
             c.start();
         }
-        new Thread(() -> {
-            while (true) {
+        Thread printer = new Thread(() -> {
+            while (!electionOver) {
                 printBoard(allCardinals, 10, 10);
+                try { Thread.sleep(150); }
+                catch (InterruptedException e) { break; }
+            }
+        });
+        printer.start();
+
+        // Eric - Scheduler thread to manage voting rounds
+        new Thread(() -> {
+            final int ROUND_MS = 5000; // Here I set the duration of each voting round
+            final int GRACE_MS = 200; // This is just a period to allow cardinals to finish their current tasks
+
+            while (!electionOver) {
+                // 1) I wait for the round to elapse
                 try {
-                    Thread.sleep(150);
+                    Thread.sleep(ROUND_MS);
                 } catch (InterruptedException e) {
+                    // If main wants to shut everything down early, exit
                     break;
                 }
+
+                // 2) Interrupt all cardinals to wake them up
+                for (Cardinal c : allCardinals) {
+                    c.interrupt();
+                }
+
+                // 3) Give them a moment to finish checkConversation()
+                try {
+                    Thread.sleep(GRACE_MS);
+                } catch (InterruptedException ignored) { }
+
+                // 4) Get votes
+                Map<String, Integer> voteCounts = new HashMap<>();
+                for (Cardinal c : allCardinals) {
+                    String v = c.getVote();
+                    voteCounts.put(v, voteCounts.getOrDefault(v, 0) + 1);
+                }
+
+                // 5) Print the votes
+                System.out.println("\n Voting In Progress:");
+                voteCounts.forEach((candidate, count) ->
+                        System.out.printf("  %s : %d%n", candidate, count)
+                );
+
+                // 6) Check for 2/3 majority
+                int needed = (int)Math.ceil((2.0 / 3.0) * allCardinals.size());
+                for (Map.Entry<String, Integer> entry : voteCounts.entrySet()) {
+                    if (entry.getValue() >= needed) {
+                        System.out.printf(
+                                "%nWHITE SMOKE! %s is elected with %d votes.%n",
+                                entry.getKey(), entry.getValue()
+                        );
+
+                        // Signal shutdown
+                        electionOver = true;
+                        allCardinals.forEach(Thread::interrupt);
+                        printer.interrupt();
+
+                        return;
+                    }
+                }
+                // No winner --> next round begins
             }
         }).start();
+
     }
 
     private static boolean positionOccupied(List<Cardinal> cardinals, int x, int y) {
@@ -46,7 +104,6 @@ public class Conclave {
     public static synchronized void printBoard(List<Cardinal> cardinals, int width, int height) {
         String[][] board = new String[height][width];
 
-        // Fill board with empty spaces
         for (int i = 0; i < height; i++) {
             Arrays.fill(board[i], ".");
         }
@@ -66,7 +123,6 @@ public class Conclave {
             }
         }
 
-        // Print board
         for (int i = 0; i < height; i++) {
             for (int j = 0; j < width; j++) {
                 System.out.printf("%3s", board[i][j]);
