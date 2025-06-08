@@ -12,7 +12,7 @@ public class Cardinal extends Thread{
     public int gridy = 10;
     private int influenceRating;
     private String vote;
-    private int threshold = new Random().nextInt(20) + 10;;
+    private int threshold = new Random().nextInt(5) + 10;;
     public int x;
     public int y;
     private List<Cardinal> allCardinals;
@@ -95,8 +95,7 @@ public class Cardinal extends Thread{
                 try {
                     Thread.sleep(1000); // Simulate conversation time
                 } catch (InterruptedException e) {
-//                    System.out.println(name + " was interrupted.");
-                    return;
+                    if (Conclave.electionOver) return;
                 }
             }
         }
@@ -104,12 +103,21 @@ public class Cardinal extends Thread{
     @Override
     public void run() {
         while (!Conclave.electionOver) {
+            synchronized (Conclave.pauseLock) {
+                while (Conclave.pauseSimulation) {
+                    try {
+                        Conclave.pauseLock.wait();
+                    } catch (InterruptedException e) {
+                        if (Conclave.electionOver) return;
+                    }
+                }
+            }
             checkConversation();
             moveRandomly();
             try {
-                Thread.sleep(120);
+                Thread.sleep(150);
             } catch (InterruptedException e) {
-            
+                if (Conclave.electionOver) return;
             }
         }
     }

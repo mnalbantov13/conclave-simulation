@@ -2,6 +2,9 @@ import java.util.*;
 
 public class Conclave {
     public static volatile boolean electionOver = false;
+    public static volatile boolean pauseSimulation = false;
+    public static final Object pauseLock = new Object();
+    public static final Object printLock = new Object();
 
     public static void main(String[] args) {
         List<Cardinal> allCardinals = new ArrayList<>();
@@ -9,12 +12,12 @@ public class Conclave {
 //            Cardinal c = new Cardinal("Cardinal" + i, i, new Random().nextInt(10), allCardinals);
 //            allCardinals.add(c);
 //        }
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 20; i++) {
             int x, y;
             Random rand = new Random();
             do {
-                x = rand.nextInt(10);
-                y = rand.nextInt(10);
+                x = rand.nextInt(5);
+                y = rand.nextInt(5);
             } while (positionOccupied(allCardinals, x, y));
             Cardinal c = new Cardinal("Cardinal" + i, i, x, y, new Random().nextInt(10), allCardinals);
 
@@ -25,17 +28,30 @@ public class Conclave {
         }
         Thread printer = new Thread(() -> {
             while (!electionOver) {
-                printBoard(allCardinals, 10, 10);
-                try { Thread.sleep(150); }
-                catch (InterruptedException e) { break; }
+                synchronized (pauseLock) {
+                    while (pauseSimulation) {
+                        try {
+                            pauseLock.wait();
+                        } catch (InterruptedException e) {
+                            return;
+                        }
+                    }
+                }
+                synchronized (Conclave.printLock){
+                    printBoard(allCardinals, 6, 6);
+                }
+                try {
+                    Thread.sleep(150);
+                }
+                catch (InterruptedException e) { return; }
             }
         });
         printer.start();
 
         // Eric - Scheduler thread to manage voting rounds
         new Thread(() -> {
-            final int ROUND_MS = 5000; // Here I set the duration of each voting round
-            final int GRACE_MS = 200; // This is just a period to allow cardinals to finish their current tasks
+            final int ROUND_MS = 2500; // Here I set the duration of each voting round
+            final int GRACE_MS = 300; // This is just a period to allow cardinals to finish their current tasks
 
             while (!electionOver) {
                 // 1) I wait for the round to elapse
@@ -64,10 +80,28 @@ public class Conclave {
                 }
 
                 // 5) Print the votes
-                System.out.println("\n Voting In Progress:");
-                voteCounts.forEach((candidate, count) ->
-                        System.out.printf("  %s : %d%n", candidate, count)
-                );
+                // Pause the simulation
+                synchronized (pauseLock) {
+                    pauseSimulation = true;
+                }
+                synchronized (Conclave.printLock) {
+                    System.out.println("\n Voting In Progress:");
+                }
+                    // Wait 1 second
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        break;
+                    }
+                synchronized (Conclave.printLock) {
+                    System.out.println("Votes:");
+                    voteCounts.forEach((candidate, count) ->
+                            System.out.printf("  %s : %d%n", candidate, count)
+                    );
+                }
+
+
+
 
                 // 6) Check for 2/3 majority
                 int needed = (int)Math.ceil((2.0 / 3.0) * allCardinals.size());
@@ -83,8 +117,21 @@ public class Conclave {
                         allCardinals.forEach(Thread::interrupt);
                         printer.interrupt();
 
-                        return;
+                        break;
                     }
+
+                }
+                if (!electionOver) {
+                    System.out.println("No candidate received the required majority.");
+                }
+                try {
+                    Thread.sleep(1500);
+                } catch (InterruptedException e) {
+                    break;
+                }
+                synchronized (pauseLock) {
+                    pauseSimulation = false;
+                    pauseLock.notifyAll();
                 }
                 // No winner --> next round begins
             }
