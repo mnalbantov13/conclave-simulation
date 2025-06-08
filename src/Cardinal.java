@@ -30,27 +30,27 @@ public class Cardinal extends Thread{
     public synchronized void moveRandomly() {
         int dir = new Random().nextInt(4);
         switch (dir){
-                case 0:
-                    if (x < gridx - 1) {
-                        x++;
-                    }
-                    break;
-                case 1:
-                    if (x > 0) {
-                        x--;
-                    }
-                    break;
-                case 2:
-                    if (y < gridy - 1) {
-                        y++;
-                    }
-                    break;
-                case 3:
-                    if (y > 0) {
-                        y--;
-                    }
-                    break;
-            }
+            case 0:
+                if (x < gridx - 1) {
+                    x++;
+                }
+                break;
+            case 1:
+                if (x > 0) {
+                    x--;
+                }
+                break;
+            case 2:
+                if (y < gridy - 1) {
+                    y++;
+                }
+                break;
+            case 3:
+                if (y > 0) {
+                    y--;
+                }
+                break;
+        }
     }
 
     public void printPosition() {
@@ -76,18 +76,18 @@ public class Cardinal extends Thread{
             if (other!=this && other.x == this.x && other.y == this.y){
                 synchronized (this){
                     synchronized (other){
-                        System.out.println(name + " is having a conversation with " + other.name + " at (" + x + ", " + y + ")");
+//                        System.out.println(name + " is having a conversation with " + other.name + " at (" + x + ", " + y + ")");
                         String candidate = other.getVote();
 
                         int influence = other.influenceRating;
                         int updatedInfluence = influenceForCandidates.getOrDefault(candidate, 0) + influence;
                         influenceForCandidates.put(candidate, updatedInfluence);
 
-                        System.out.println(name + " was influenced by " + other.name + " to vote for " + candidate + "(total influence for " + candidate + ":" + updatedInfluence + ", current vote: " + vote +")");
+//                        System.out.println(name + " was influenced by " + other.name + " to vote for " + candidate + "(total influence for " + candidate + ":" + updatedInfluence + ", current vote: " + vote +")");
 
                         if(updatedInfluence>threshold){
                             vote = candidate;
-                            System.out.println(name + " changed his vote to " + vote);
+//                            System.out.println(name + " changed his vote to " + vote);
                         }
                     }
                 }
@@ -95,22 +95,23 @@ public class Cardinal extends Thread{
                 try {
                     Thread.sleep(1000); // Simulate conversation time
                 } catch (InterruptedException e) {
-                    System.out.println(name + " was interrupted.");
-                    break;
+//                    System.out.println(name + " was interrupted.");
+                    return;
                 }
             }
         }
     }
+    @Override
     public void run() {
-        while (true) {
+        while (!Conclave.electionOver) {
             checkConversation();
             moveRandomly();
             try {
                 Thread.sleep(120);
             } catch (InterruptedException e) {
-                System.out.println(name + " was interrupted.");
-                break;
+            
             }
         }
     }
+
 }
